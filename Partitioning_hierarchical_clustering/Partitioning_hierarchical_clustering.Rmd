@@ -12,7 +12,7 @@ for cluster analysis
 
 
 ```{r}
-Dataset <- read.csv("~/UCF_Summer_2021/Final_DS_csv.csv", row.names=1)
+Dataset <- read.csv("~/UCF_Summer_2021/car_dataset.csv", row.names=1)
 
 v_keep <- c(
 "wheel_base","length","width","height","curb_weight","engine_size",
