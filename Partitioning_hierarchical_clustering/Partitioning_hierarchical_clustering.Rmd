@@ -1,0 +1,877 @@
+---
+title: "Partitioning and hierarchical clustering"
+output:
+  html_notebook: default
+  html_document:
+    df_print: paged
+  pdf_document: default
+---
+
+Reading the file from CSV and covert rows as obseration and column as var
+for cluster analysis
+
+
+```{r}
+Dataset <- read.csv("~/UCF_Summer_2021/Final_DS_csv.csv", row.names=1)
+
+v_keep <- c(
+"wheel_base","length","width","height","curb_weight","engine_size",
+"bore","stroke","compression_ratio","horsepower","peak_rpm","city_mpg","highway_mpg"
+,"price"
+)
+
+M <- Dataset[,
+  v_keep
+]
+
+scale_M <- scale(
+  x = M
+)
+```
+
+A) Partition Clustering
+
+A.1) K mean Clustering
+
+A.1.1) Finding out best cluster for K mean 
+
+using Elbow, Silhouette plot
+
+```{r}
+set.seed(823)
+factoextra::fviz_nbclust(  
+  x = scale_M,  
+  FUNcluster = kmeans,  
+  method = "wss"
+)
+
+```
+There is a steep drop at cluster 2. So as per this graph 2 cluster
+is the good option
+
+
+```{r}
+set.seed(823)
+factoextra::fviz_nbclust(  
+  x = scale_M,  
+  FUNcluster = kmeans,  
+  method = "silhouette"
+)
+```
+As per the graph number of cluster 2 is good for this dataset
+
+
+
+A.1.2) 2 cluster K mean 
+
+```{r}
+kmeans_Car_2 <- kmeans(
+  x = scale_M,
+  centers = 2
+)
+kmeans_Car_2
+```
+
+```{r}
+prcomp_M_2 <- data.frame(
+  prcomp(
+    x = scale_M,
+    center = FALSE,
+    scale. = FALSE
+  )$x[,1:2],
+  Name = rownames(Dataset),
+  Cluster = as.character(kmeans_Car_2$cluster),
+  stringsAsFactors = FALSE
+)
+```
+
+```{r}
+require(ggplot2)
+require(ggforce)
+ggplot(prcomp_M_2) + 
+  aes(x = PC1,y = PC2,color = Cluster,fill = Cluster,label = Name,group = Cluster) + 
+  geom_point() + 
+  ggrepel::geom_text_repel(color = "black",size = 3) + 
+  ggtitle("Scatter plot of decathlon principal components","Color corresponds to k-means cluster") + 
+  theme_bw() + 
+  theme(legend.position = "none")
+```
+
+ClustPlot to show the overlap. 
+
+```{r}
+cluster::clusplot(  
+  scale_M,  
+  kmeans_Car_2$cluster,  
+  color=TRUE,  
+  shade=TRUE,  
+  labels=2,  
+  lines=0
+)
+```
+In above graph we can see a overlap between the two group. 
+
+```{r}
+factoextra::fviz_cluster(
+  object = kmeans_Car_2,
+  data = scale_M
+)
+```
+
+Max.diameter & Min.Separation
+
+Good cluster criteria : Max.Diameter should be small and min.separation should
+be large
+
+```{r}
+Kmean_stat_2 <- fpc::cluster.stats(  
+  d = dist(scale_M),  
+  clustering = kmeans_Car_2$cluster,  
+  G2 = TRUE,  
+  G3 = TRUE)
+
+Kmean_stat_2$max.diameter
+Kmean_stat_2$min.separation
+```
+
+A.2) Clara
+A.1.1) Finding out best cluster for K mean 
+
+using Elbow, Silhouette
+
+```{r}
+set.seed(823)
+factoextra::fviz_nbclust(  
+  x = scale_M,  
+  FUNcluster = cluster::clara,  
+  method = "wss"
+)
+```
+
+```{r}
+set.seed(823)
+factoextra::fviz_nbclust(  
+  x = scale_M,  
+  FUNcluster = cluster::clara,  
+  method = "silhouette"
+)
+```
+From above two graph we can conclude that cluster 2 is best for this algo
+
+A.2.2) 2 cluster Clara 
+
+```{r}
+clara_Car_2 <- cluster::clara(
+  x = scale_M,
+  k = 2
+)
+clara_Car_2
+```
+
+
+```{r}
+prcomp_M_Clara_2 <- data.frame(
+  prcomp(
+    x = scale_M,
+    center = FALSE,
+    scale. = FALSE
+  )$x[,1:2],
+  Name = rownames(Dataset),
+  Cluster = as.character(clara_Car_2$cluster),
+  stringsAsFactors = FALSE
+)
+```
+
+```{r}
+require(ggplot2)
+require(ggforce)
+ggplot(prcomp_M_Clara_2) + 
+  aes(x = PC1,y = PC2,color = Cluster,fill = Cluster,label = Name,group = Cluster) + 
+  geom_point() + 
+  ggrepel::geom_text_repel(color = "black",size = 3) + 
+  ggtitle("Scatter plot of decathlon principal components","Color corresponds to k-means cluster") + 
+  theme_bw() + 
+  theme(legend.position = "none")
+```
+
+
+```{r}
+cluster::clusplot(  
+  scale_M,  
+  clara_Car_2$cluster,  
+  color=TRUE,  
+  shade=TRUE,  
+  labels=2,  
+  lines=0
+)
+```
+
+```{r}
+factoextra::fviz_cluster(
+  object = clara_Car_2,
+  data = scale_M
+)
+```
+```{r}
+Clara_stat_2 <- fpc::cluster.stats(  
+  d = dist(scale_M),  
+  clustering = clara_Car_2$cluster,  
+  G2 = TRUE,  
+  G3 = TRUE)
+
+Clara_stat_2$max.diameter
+Clara_stat_2$min.separation
+```
+
+
+
+A.3) Fanny Clustering
+
+A.3.1) Finding out best cluster for K mean 
+
+using Elbow, Silhouette & Gap Statistics
+
+
+```{r}
+set.seed(823)
+factoextra::fviz_nbclust(  
+  x = scale_M,  
+  FUNcluster = cluster::fanny,  
+  method = "wss"
+)
+
+```
+
+```{r}
+set.seed(823)
+factoextra::fviz_nbclust(  
+  x = scale_M,  
+  FUNcluster = cluster::fanny,  
+  method = "silhouette"
+)
+```
+
+select cluster size as 2 from above plot
+
+
+A.3.2) 2 cluster fanny 
+
+```{r}
+fanny_Car_2 <- cluster::fanny(
+  x = scale_M,
+  k = 2
+)
+fanny_Car_2
+```
+```{r}
+prcomp_M_fanny_2 <- data.frame(
+  prcomp(
+    x = scale_M,
+    center = FALSE,
+    scale. = FALSE
+  )$x[,1:2],
+  Name = rownames(Dataset),
+  Cluster = as.character(fanny_Car_2$cluster),
+  stringsAsFactors = FALSE
+)
+```
+
+```{r}
+require(ggplot2)
+require(ggforce)
+ggplot(prcomp_M_fanny_2) + 
+  aes(x = PC1,y = PC2,color = Cluster,fill = Cluster,label = Name,group = Cluster) + 
+  geom_point() + 
+  ggrepel::geom_text_repel(color = "black",size = 3) + 
+  ggtitle("Scatter plot of decathlon principal components","Color corresponds to k-means cluster") + 
+  theme_bw() + 
+  theme(legend.position = "none")
+```
+
+```{r}
+cluster::clusplot(  
+  scale_M,  
+  fanny_Car_2$cluster,  
+  color=TRUE,  
+  shade=TRUE,  
+  labels=2,  
+  lines=0
+)
+```
+
+```{r}
+factoextra::fviz_cluster(
+  object = fanny_Car_2,
+  data = scale_M
+)
+```
+```{r}
+fanny_stat_2 <- fpc::cluster.stats(  
+  d = dist(scale_M),  
+  clustering = fanny_Car_2$cluster,  
+  G2 = TRUE,  
+  G3 = TRUE)
+
+fanny_stat_2$max.diameter
+fanny_stat_2$min.separation
+```
+
+A.4) Pam Clustering
+
+A.4.1) Finding out best cluster for K mean 
+
+using Elbow, Silhouette & Gap Statistics
+
+
+```{r}
+set.seed(823)
+factoextra::fviz_nbclust(  
+  x = scale_M,  
+  FUNcluster = cluster::pam,  
+  method = "wss"
+)
+
+```
+
+```{r}
+set.seed(823)
+factoextra::fviz_nbclust(  
+  x = scale_M,  
+  FUNcluster = cluster::pam,  
+  method = "silhouette"
+)
+```
+Cluster size 2 is best selection for this model. 
+
+A.4.2) 2 cluster Pam 
+
+```{r}
+pam_Car_2 <- cluster::pam(
+  x = scale_M,
+  k = 2
+)
+pam_Car_2
+```
+
+
+```{r}
+prcomp_M_pam_2 <- data.frame(
+  prcomp(
+    x = scale_M,
+    center = FALSE,
+    scale. = FALSE
+  )$x[,1:2],
+  Name = rownames(Dataset),
+  Cluster = as.character(pam_Car_2$cluster),
+  stringsAsFactors = FALSE
+)
+```
+
+```{r}
+require(ggplot2)
+require(ggforce)
+ggplot(prcomp_M_pam_2) + 
+  aes(x = PC1,y = PC2,color = Cluster,fill = Cluster,label = Name,group = Cluster) + 
+  geom_point() + 
+  ggrepel::geom_text_repel(color = "black",size = 3) + 
+  ggtitle("Scatter plot of decathlon principal components","Color corresponds to k-means cluster") + 
+  theme_bw() + 
+  theme(legend.position = "none")
+```
+
+```{r}
+cluster::clusplot(  
+  scale_M,  
+  pam_Car_2$cluster,  
+  color=TRUE,  
+  shade=TRUE,  
+  labels=2,  
+  lines=0
+)
+```
+
+```{r}
+factoextra::fviz_cluster(
+  object = pam_Car_2,
+  data = scale_M
+)
+```
+```{r}
+pam_stat_2 <- fpc::cluster.stats(  
+  d = dist(scale_M),  
+  clustering = pam_Car_2$cluster,  
+  G2 = TRUE,  
+  G3 = TRUE)
+
+pam_stat_2$max.diameter
+pam_stat_2$min.separation
+```
+
+                               
+# ##############################################################################
+
+B) hierarchical clustering
+ 
+Including all Numeric input to find Equal Size Group ( Used Ward.D )
+Including all Numeric input to find outlier ( used Single )
+
+
+B.1) use hclust()
+Distance Matrix : - used "canberra","manhattan","euclidean","maximum","minkowski"
+to find which distance matrix
+
+```{r}
+v_dist <- c(
+  "canberra","manhattan","euclidean","maximum","minkowski"
+)
+
+list_dist <- lapply(
+  X = v_dist,
+  FUN = function(distance_method) dist(
+    x = scale_M,
+    method = distance_method
+  )
+)
+
+names(list_dist) <- v_dist
+v_hclust <- c(
+  "ward.D","single"
+)
+
+list_hclust <- list()
+for(j in v_dist) for(k in v_hclust) list_hclust[[j]][[k]] <- hclust(
+  d = list_dist[[j]],
+  method = k
+)
+par(
+  mfrow = c(length(v_dist),length(v_hclust)),
+  mar = c(0,0,0,0),
+  mai = c(0,0,0,0),
+  oma = c(0,0,0,0)
+)
+for(j in v_dist) for(k in v_hclust) plot(
+  x = list_hclust[[j]][[k]],
+  labels = FALSE,
+  axes = FALSE,
+  main = paste("\n",j,"\n",k)
+)
+
+```
+
+
+```{r}
+M_coef <- matrix(
+  data = NA,
+  nrow = length(v_dist),
+  ncol = length(v_hclust)
+)
+rownames(M_coef) <- v_dist
+colnames(M_coef) <- v_hclust
+for(j in v_dist) for(k in v_hclust) try({
+  M_coef[j,k] <- cluster::coef.hclust(
+    object = list_hclust[[j]][[k]]
+  )
+})
+M_coef
+```
+#Manhattan & Ward.D gave highest score so considered to find equal size grouping
+#Canberra & Single gave lowest score so considered to find outlier detection
+
+```{r}
+dist_M_equal <- dist(
+  x = scale_M,
+  method = "manhattan"
+)
+```
+
+```{r}
+heatmap(
+  x = as.matrix(dist_M_equal),
+  col = viridis::viridis(256)
+)
+
+```
+Dark teal color square represent the group of cars associated with each other.
+This is derived from the distance matrix 
+
+```{r}
+
+factoextra::fviz_dist(dist_M_equal)
+```
+
+Below is the network Theory diagram to show how closely the observations are 
+related to eachother. 
+
+```{r}
+qgraph::qgraph(
+  input = 1/dist_M_equal,
+  layout= "spring", #"spring",
+  minimum = 0.3
+)
+```
+
+
+```{r}
+
+hclust_M_equal <- hclust(
+  d = dist_M_equal,
+  method = "ward.D"
+)
+plot(
+  x = hclust_M_equal
+)
+
+```
+Cutting the tree in 4 clusters
+
+```{r}
+cutree_M_4_equal <- cutree(
+  tree = hclust_M_equal,
+  k = 4
+)
+```
+
+
+```{r}
+prcomp_hir_M_equal <- data.frame(
+  prcomp(
+    x = scale_M,
+    center = FALSE,
+    scale. = FALSE
+  )$x[,1:2],
+  Name = rownames(Dataset),
+  Cluster = as.character(cutree_M_4_equal),
+  stringsAsFactors = FALSE
+)
+```
+
+```{r}
+require(ggplot2)
+ggplot(prcomp_hir_M_equal) + 
+  aes(x = PC1,y = PC2,color = Cluster,fill = Cluster,label = Name,group = Cluster) + 
+  geom_point() + 
+  ggrepel::geom_text_repel(color = "black",size = 3) + 
+  ggtitle("Scatter plot of decathlon principal components","Color corresponds to k-means cluster") + 
+  theme_bw() + 
+  theme(legend.position = "none")
+```
+
+```{r}
+silhouette_M_4_equal <- cluster::silhouette(
+  x = cutree_M_4_equal,
+  dist = dist_M_equal
+)
+plot(
+  x = silhouette_M_4_equal
+)
+```
+Above graph will show how good is the cluster. If more number of obs are in left
+then thoese observations are included in wrong group. 
+
+
+Cutting the tree in 3 clusters
+
+
+
+```{r}
+cutree_M_3_equal <- cutree(
+  tree = hclust_M_equal,
+  k = 3
+)
+```
+
+```{r}
+prcomp_hir_M_equal_3 <- data.frame(
+  prcomp(
+    x = scale_M,
+    center = FALSE,
+    scale. = FALSE
+  )$x[,1:2],
+  Name = rownames(Dataset),
+  Cluster = as.character(cutree_M_3_equal),
+  stringsAsFactors = FALSE
+)
+```
+
+```{r}
+require(ggplot2)
+ggplot(prcomp_hir_M_equal_3) + 
+  aes(x = PC1,y = PC2,color = Cluster,fill = Cluster,label = Name,group = Cluster) + 
+  geom_point() + 
+  ggrepel::geom_text_repel(color = "black",size = 3) + 
+  ggtitle("Scatter plot of decathlon principal components","Color corresponds to k-means cluster") + 
+  theme_bw() + 
+  theme(legend.position = "none")
+```
+
+
+```{r}
+silhouette_M_3_equal <- cluster::silhouette(
+  x = cutree_M_3_equal,
+  dist = dist_M_equal
+)
+plot(
+  x = silhouette_M_3_equal
+)
+```
+Cutting the tree in 2 clusters
+
+
+
+```{r}
+cutree_M_2_equal <- cutree(
+  tree = hclust_M_equal,
+  k = 2
+)
+```
+
+```{r}
+prcomp_hir_M_equal_2 <- data.frame(
+  prcomp(
+    x = scale_M,
+    center = FALSE,
+    scale. = FALSE
+  )$x[,1:2],
+  Name = rownames(Dataset),
+  Cluster = as.character(cutree_M_2_equal),
+  stringsAsFactors = FALSE
+)
+```
+
+```{r}
+require(ggplot2)
+ggplot(prcomp_hir_M_equal_2) + 
+  aes(x = PC1,y = PC2,color = Cluster,fill = Cluster,label = Name,group = Cluster) + 
+  geom_point() + 
+  ggrepel::geom_text_repel(color = "black",size = 3) + 
+  ggtitle("Scatter plot of decathlon principal components","Color corresponds to k-means cluster") + 
+  theme_bw() + 
+  theme(legend.position = "none")
+```
+```{r}
+silhouette_M_2_equal <- cluster::silhouette(
+  x = cutree_M_2_equal,
+  dist = dist_M_equal
+)
+plot(
+  x = silhouette_M_2_equal
+)
+```
+
+
+Finding Outlier 
+
+
+
+```{r}
+dist_M_outlier <- dist(
+  x = scale_M,
+  method = "canberra"
+)
+```
+
+```{r}
+hclust_M_outlier <- hclust(
+  d = dist_M_outlier,
+  method = "single"
+)
+plot(
+  x = hclust_M_outlier
+)
+```
+
+
+B.2. Using cluster::agnes() 
+
+```{r}
+v_pc <- prcomp(scale_M)$x[,1]
+scale_M <- scale_M[order(v_pc),]
+```
+
+```{r}
+v_methods <- c( "average", "single", "complete", "ward")
+v_metric <- c( "canberra","manhattan","euclidean","maximum","minkowski" )
+names(v_methods) <- c( "average", "single", "complete", "ward")
+names(v_metric) <- c( "canberra","manhattan","euclidean","maximum","minkowski" )
+
+
+ac <- function(x) {
+  cluster::agnes(scale_M, method = x)$ac
+}
+
+purrr::map_dbl(v_methods, ac)
+
+```
+
+```{r}
+agnes_M_ward <- cluster::agnes(scale_M,metric = "manhattan", method = "ward")
+plot(agnes_M_ward)
+```
+
+
+```{r}
+cluster::pltree(agnes_M_ward, cex = 0.6, hang = -1, main = "Dendrogram of Agnes") 
+```
+
+```{r}
+as.hclust(x = agnes_M_ward) 
+```
+
+```{r}
+print(agnes_M_ward) 
+```
+ Cut tree with two cluster
+
+```{r}
+cutree_Agnes_2_equal <- cutree(
+  tree = agnes_M_ward,
+  k = 2
+)
+```
+
+```{r}
+prcomp_Agnes_equal_2 <- data.frame(
+  prcomp(
+    x = scale_M,
+    center = FALSE,
+    scale. = FALSE
+  )$x[,1:2],
+  Name = rownames(Dataset),
+  Cluster = as.character(cutree_Agnes_2_equal),
+  stringsAsFactors = FALSE
+)
+```
+
+```{r}
+require(ggplot2)
+ggplot(prcomp_Agnes_equal_2) + 
+  aes(x = PC1,y = PC2,color = Cluster,fill = Cluster,label = Name,group = Cluster) + 
+  geom_point() + 
+  ggrepel::geom_text_repel(color = "black",size = 3) + 
+  ggtitle("Scatter plot of decathlon principal components","Color corresponds to k-means cluster") + 
+  theme_bw() + 
+  theme(legend.position = "none")
+```
+
+```{r}
+silhouette_Agnes_2_equal <- cluster::silhouette(
+  x = cutree_Agnes_2_equal,
+  dist = dist_M_equal
+)
+plot(
+  x = silhouette_Agnes_2_equal
+)
+```
+
+finding out the outlier 
+
+```{r}
+agnes_M_single <- cluster::agnes(scale_M,metric = "manhattan", method = "single")
+plot(agnes_M_single)
+```
+
+```{r}
+as.hclust(x = agnes_M_single) 
+```
+
+```{r}
+print(agnes_M_single) 
+```
+
+
+
+#cluster::diana() : No method to provide
+
+```{r}
+diana_M <- cluster::diana(scale_M)
+plot(diana_M)
+```
+
+
+```{r}
+as.hclust(x = diana_M) 
+```
+
+```{r}
+print(diana_M) 
+```
+#Cut tree with 2 cluster
+
+```{r}
+cutree(  tree = diana_M,  k = 2)
+```
+
+```{r}
+cutree_diana_2_equal <- cutree(
+  tree = diana_M,
+  k =2
+)
+```
+
+```{r}
+prcomp_diana_equal_2 <- data.frame(
+  prcomp(
+    x = scale_M,
+    center = FALSE,
+    scale. = FALSE
+  )$x[,1:2],
+  Name = rownames(Dataset),
+  Cluster = as.character(cutree_diana_2_equal),
+  stringsAsFactors = FALSE
+)
+```
+
+```{r}
+require(ggplot2)
+ggplot(prcomp_diana_equal_2) + 
+  aes(x = PC1,y = PC2,color = Cluster,fill = Cluster,label = Name,group = Cluster) + 
+  geom_point() + 
+  ggrepel::geom_text_repel(color = "black",size = 3) + 
+  ggtitle("Scatter plot of decathlon principal components","Color corresponds to k-means cluster") + 
+  theme_bw() + 
+  theme(legend.position = "none")
+```
+
+```{r}
+silhouette_diana_2_equal <- cluster::silhouette(
+  x = cutree_diana_2_equal,
+  dist = dist_M_equal
+)
+plot(
+  x = silhouette_diana_2_equal
+)
+```
+
+cluster::mona
+
+
+
+```{r}
+binary_M <- scale_M
+for(j in 1:ncol(binary_M)) binary_M[,j] <- as.numeric(  
+  binary_M[,j] >median(binary_M[,j])
+)
+mona_M <- cluster::mona(binary_M)
+print(mona_M)
+```
+
+```{r}
+plot(mona_M)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
